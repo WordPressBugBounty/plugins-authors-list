@@ -770,7 +770,13 @@ class Authors_List_Shortcode {
 							$link_text = $settings['link_text'];
 						}
 					?>
-					<a href="<?php echo esc_url( $vars['author_posts_url'] ); ?>" class="authors-list-item-link" aria-label="<?php esc_attr( $vars['author_name'] ); ?> - <?php esc_attr_e( 'View Posts &rarr;', 'authors-list' ); ?>"><?php echo $link_text; ?></a>
+					<a href="<?php echo esc_url( $vars['author_posts_url'] ); ?>" class="authors-list-item-link" aria-label="<?php esc_attr( $vars['author_name'] ); ?> - <?php esc_attr_e( 'View Posts &rarr;', 'authors-list' ); ?>"><?php
+						echo wp_kses( $link_text, array(
+							'span'   => array( 'class' => array() ),
+							'strong' => array(),
+							'em'     => array(),
+						) );
+					?></a>
 				<?php endif; ?>
 
 				<?php if ( $settings['after_link'] ) : ?>

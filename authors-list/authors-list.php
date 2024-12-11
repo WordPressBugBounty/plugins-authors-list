@@ -3,7 +3,7 @@
 /**
  * Plugin Name:       Authors List
  * Description:       Display a list of post authors.
- * Version:           2.0.4
+ * Version:           2.0.5
  * Author:            WPKube
  * Author URI:        http://wpkube.com/
  * License:           GPL-2.0+

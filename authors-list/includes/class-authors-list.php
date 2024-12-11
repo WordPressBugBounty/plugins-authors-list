@@ -20,7 +20,7 @@ class Authors_List {
 	 *
 	 * @var string
 	 */
-	public $version = '2.0.4';
+	public $version = '2.0.5';
 
 	/**
 	 * The single instance of the class.

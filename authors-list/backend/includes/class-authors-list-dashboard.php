@@ -153,6 +153,15 @@ if ( ! class_exists( 'Authors_List_Dashboard' ) ) {
 				$settings
 			);
 
+			// nonce for preview (when editing)
+			wp_localize_script(
+				'authors-list-dashboard-js',
+				'authorsListPreview',
+				array(
+					'nonce' => wp_create_nonce('authors_list_preview_nonce')
+				)
+			);
+
 		}
 
 		/**
@@ -171,7 +180,7 @@ if ( ! class_exists( 'Authors_List_Dashboard' ) ) {
 			}
 
 			// Which action are we doing?
-			$action = wp_unslash( $_GET['al_action'] );
+			$action = sanitize_text_field( wp_unslash( $_GET['al_action'] ) );
 
 			// Get the main general class.
 			$authors_list_general = Authors_List_General::instance();
@@ -249,7 +258,7 @@ if ( ! class_exists( 'Authors_List_Dashboard' ) ) {
 			$action = '';
 
 			if ( isset( $_GET['al_action'] ) ) {
-				$action = wp_unslash( $_GET['al_action'] );
+				$action = sanitize_text_field( wp_unslash( $_GET['al_action'] ) );
 			}
 			?>
 			<div class="wrap">
@@ -259,7 +268,7 @@ if ( ! class_exists( 'Authors_List_Dashboard' ) ) {
 				<?php if ( defined( 'AUTHORS_LIST_FREE' ) && defined( 'AUTHORS_LIST_PRO' ) ) : ?>
 					<div class="authors-list-free-notice">
 						You have both FREE and PRO versions of Authors List plugin enabled.
-						<br><a href="<?php echo admin_url( 'plugins.php?plugin_status=active' ); ?>">Please disable the FREE version</a>.
+						<br><a href="<?php echo esc_url( admin_url( 'plugins.php?plugin_status=active' ) ); ?>">Please disable the FREE version</a>.
 					</div>
 				<?php endif; ?>
 
@@ -307,7 +316,7 @@ if ( ! class_exists( 'Authors_List_Dashboard' ) ) {
 			// Current filter ( active/trash ).
 			$filter = 'active';
 			if ( isset( $_GET['al_filter'] ) ) {
-				$filter = wp_unslash( $_GET['al_filter'] );
+				$filter = sanitize_text_field( wp_unslash( $_GET['al_filter'] ) );
 			}
 			?>
 
@@ -340,6 +349,9 @@ if ( ! class_exists( 'Authors_List_Dashboard' ) ) {
 								}
 
 								$item_data = $authors_list_item->get_item_data( $item['id'] );
+								if ( ! $item_data ) {
+									$item_data = array();
+								}
 								if ( empty( $item_data['settings']['name'] ) ) {
 									$item_data['settings']['name'] = esc_html__( 'Untitled item #', 'authors-list' ) . $item['id'];
 								}
@@ -443,12 +455,27 @@ if ( ! class_exists( 'Authors_List_Dashboard' ) ) {
 				return;
 			}
 
+			// Nonce verification
+			if ( ! check_ajax_referer( 'authors_list_preview_nonce', 'nonce', false ) ) {
+				wp_send_json_error( array( 'message' => 'Invalid nonce' ) );
+			}
+
 			$item_id  = isset( $_POST['item_id'] ) ? (int) $_POST['item_id'] : 0;
-			$settings = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : '';
+			$settings = isset( $_POST['settings'] ) ? wp_unslash( $_POST['settings'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 
 			parse_str( $settings, $settings_array );
 
-			update_option( 'authors_list_item_draft_' . $item_id, $settings_array[ 'authors_list_item_settings_' . $item_id ] );
+			$sanitized_settings = array();
+			foreach ( $settings_array as $key => $value ) {
+				$key = sanitize_key( $key );
+				if ( is_array( $value ) ) {
+					$sanitized_settings[$key] = array_map( 'sanitize_text_field', $value );
+				} else {
+					$sanitized_settings[$key] = sanitize_text_field( $value );
+				}
+			}
+
+			update_option( 'authors_list_item_draft_' . $item_id, $sanitized_settings[ 'authors_list_item_settings_' . $item_id ] );
 
 			$data            = array();
 			$data['disable'] = '<div class="authors-list-dashboard-preview-styler-disabled"></div>';

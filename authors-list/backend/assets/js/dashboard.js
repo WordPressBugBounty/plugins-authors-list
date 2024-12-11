@@ -39,6 +39,7 @@ jQuery( document ).ready( function( $ ) {
 			'action': 'authors_list_display_edit_item_preview_ajax',
 			'item_id': holder.data( 'item-id' ),
 			'settings': $( '.authors-list-settings-main form' ).serialize(),
+			'nonce': authorsListPreview.nonce
 		};
 
 		$( '.authors-list-dashboard-preview-loader' ).show();

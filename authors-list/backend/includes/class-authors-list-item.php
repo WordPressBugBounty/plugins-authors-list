@@ -784,64 +784,79 @@ if ( ! class_exists( 'Authors_List_Item' ) ) {
 		 * Ajax handler to update the authors list from the Ajax filter button.
 		 */
 		public function update_authors_list_ajax() {
-
-			// Return if the nonce is not verified.
-			$request_nonce = isset( $_REQUEST['authorsListNonce'] ) ? wp_unslash( $_REQUEST['authorsListNonce'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
-			if ( ! wp_verify_nonce( $request_nonce, 'authors-list-search' ) ) {
+			
+			// Verify nonce
+			if ( ! isset( $_REQUEST['authorsListNonce'] ) || 
+				 ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_REQUEST['authorsListNonce'] ) ), 'authors-list-search' ) ) {
+				wp_send_json_error( 'Invalid nonce' );
 				return;
 			}
-
-			// Remove the filter of authors_list_shortcode_atts for Ajax event.
+		
+			// Remove filter
 			remove_filter( 'authors_list_shortcode_atts', array( $this, 'shortcode_atts' ) );
-
-			// Get all of the available $_POST datas.
-			$shortcode     = isset( $_POST['shortcode'] ) ? wp_unslash( $_POST['shortcode'] ) : '';
-			$shortcode_id  = str_replace( array( '[authors_list id=', ']' ), '', $shortcode );
-			$search_param  = isset( $_POST['searchParam'] ) ? wp_unslash( $_POST['searchParam'] ) : '';
-			$search_column = isset( $_POST['searchColumn'] ) ? wp_unslash( $_POST['searchColumn'] ) : '';
-
-			// Add the filter of authors_list_shortcode_atts for Ajax event after getting new required parameters.
-			add_filter( 'authors_list_shortcode_atts', array( $this, 'shortcode_atts_ajax' ) );
-
-			// Add the filter of authors_list_custom_args for custom arguments in get_users query.
-			add_filter( 'authors_list_custom_args', array( $this, 'custom_args' ), 10, 2 );
-
-			$preview = false;
-			if ( ! empty( $atts['preview'] ) && true == $atts['preview'] ) { // phpcs:ignore WordPress.PHP.StrictComparisons.LooseComparison
-				$preview = true;
+		
+			// Sanitize and validate
+			$shortcode_id = '';
+			if ( isset( $_POST['shortcode'] ) ) {
+				$shortcode = sanitize_text_field( wp_unslash( $_POST['shortcode'] ) );
+				// Extract only numeric ID
+				if ( preg_match( '/^\[authors_list id=(\d+)\]$/', $shortcode, $matches ) ) {
+					$shortcode_id = absint( $matches[1] );
+				}
 			}
-
-			// Get item data.
-			$item = $this->get_item_data( $shortcode_id, $preview );
-
-			// item not found, return.
-			if ( ! $item ) {
+		
+			// Validate shortcode_id
+			if ( empty( $shortcode_id ) ) {
+				wp_send_json_error( 'Invalid shortcode format' );
 				return;
 			}
-
-			// item settings.
+		
+			// Search parameters
+			$search_param = isset( $_POST['searchParam'] ) ? sanitize_text_field( wp_unslash( $_POST['searchParam'] ) ) : '';
+			$search_column = isset( $_POST['searchColumn'] ) ? sanitize_text_field( wp_unslash( $_POST['searchColumn'] ) ) : '';
+		
+			// Add filters
+			add_filter( 'authors_list_shortcode_atts', array( $this, 'shortcode_atts_ajax' ) );
+			add_filter( 'authors_list_custom_args', array( $this, 'custom_args' ), 10, 2 );
+		
+			// Get and validate item data
+			$preview = ! empty( $atts['preview'] ) && $atts['preview'] === true;
+			$item = $this->get_item_data( $shortcode_id, $preview );
+		
+			if ( ! $item || empty( $item['settings'] ) ) {
+				wp_send_json_error( 'Item not found' );
+				return;
+			}
+		
 			$settings = $item['settings'];
-
-			// For search option.
-			$search_atts = '';
-			if ( $search_param ) {
-				$search_atts = "search='{$search_param}'";
+		
+			// Build shortcode attributes
+			$shortcode_atts = array(
+				'id' => $shortcode_id,
+				'ajax_request' => 'yes'
+			);
+		
+			if ( ! empty( $search_param ) ) {
+				$shortcode_atts['search'] = $search_param;
 			}
-
-			// For search column option.
-			$search_column_atts = '';
-			if ( $search_column ) {
-				$search_column_atts = "search_columns='{$search_column}'";
+		
+			if ( ! empty( $search_column ) ) {
+				$shortcode_atts['search_columns'] = $search_column;
 			}
-
-			// For filter options.
-			$filter_atts = '';
-			if ( $settings['filters'] ) {
-				$filter_atts = "filters='{$settings['filters']}'";
+		
+			if ( ! empty( $settings['filters'] ) ) {
+				$shortcode_atts['filters'] = $settings['filters'];
 			}
-
-			$output = do_shortcode( "[authors_list id={$shortcode_id} $search_atts $search_column_atts $filter_atts ajax_request='yes']" );
-
+		
+			// Generate shortcode
+			$shortcode_str = '[authors_list';
+			foreach ( $shortcode_atts as $key => $value ) {
+				$shortcode_str .= ' ' . esc_attr( $key ) . '="' . esc_attr( $value ) . '"';
+			}
+			$shortcode_str .= ']';
+		
+			// Execute and return
+			$output = do_shortcode( $shortcode_str );
 			wp_send_json_success( $output );
 
 		}
@@ -900,15 +915,15 @@ if ( ! class_exists( 'Authors_List_Item' ) ) {
 		public function custom_args( $args, $atts ) {
 
 			// Return if the nonce is not verified.
-			$request_nonce = isset( $_REQUEST['authorsListNonce'] ) ? wp_unslash( $_REQUEST['authorsListNonce'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+			$request_nonce = isset( $_REQUEST['authorsListNonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['authorsListNonce'] ) ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
 			if ( ! wp_verify_nonce( $request_nonce, 'authors-list-search' ) ) {
 				return;
 			}
 
 			// Get all of the available $_POST datas.
-			$search_param      = isset( $_POST['searchParam'] ) ? wp_unslash( $_POST['searchParam'] ) : '';
-			$search_column     = isset( $_POST['searchColumn'] ) ? wp_unslash( $_POST['searchColumn'] ) : '';
-			$ajax_filters_data = isset( $_POST['ajaxFiltersData'] ) ? wp_unslash( $_POST['ajaxFiltersData'] ) : array();
+			$search_param      = isset( $_POST['searchParam'] ) ? sanitize_text_field( wp_unslash( $_POST['searchParam'] ) ) : '';
+			$search_column     = isset( $_POST['searchColumn'] ) ? sanitize_text_field( wp_unslash( $_POST['searchColumn'] ) ) : '';
+			$ajax_filters_data = isset( $_POST['ajaxFiltersData'] ) ? sanitize_text_field( wp_unslash( $_POST['ajaxFiltersData'] ) ) : array();
 
 			// For search.
 			if ( ( isset( $atts['search'] ) && $atts['search'] ) && $search_param ) {

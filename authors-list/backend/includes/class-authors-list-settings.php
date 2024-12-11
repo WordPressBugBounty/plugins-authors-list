@@ -608,7 +608,7 @@ if ( ! class_exists( 'Authors_List_Settings' ) ) {
 					return;
 				}
 
-				$option_name     = wp_unslash( $_POST['al_option_name'] );
+				$option_name     = sanitize_text_field( wp_unslash( $_POST['al_option_name'] ) );
 				$checkbox_values = array();
 				foreach ( $sections as $section ) {
 					foreach ( $fields[ $section['id'] ] as $field ) {
@@ -621,7 +621,20 @@ if ( ! class_exists( 'Authors_List_Settings' ) ) {
 						}
 					}
 				}
-				$all_options = array_merge( wp_unslash( $_POST[ $option_name ] ), $checkbox_values ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated;
+				
+				$posted_data = wp_unslash( $_POST[$option_name] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				$sanitized_data = array();
+
+				foreach ( $posted_data as $key => $value ) {
+					$key = sanitize_key( $key );
+					if ( is_array( $value ) ) {
+						$sanitized_data[$key] = array_map( 'sanitize_text_field', $value );
+					} else {
+						$sanitized_data[$key] = sanitize_text_field( $value );
+					}
+				}
+
+				$all_options = array_merge( $sanitized_data, $checkbox_values ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotValidated;
 				update_option( $option_name, $all_options );
 				$settings_saved = true;
 			}
@@ -749,7 +762,7 @@ if ( ! class_exists( 'Authors_List_Settings' ) ) {
 
 						case 'shortcode':
 							?>
-							<input type="text" name="" value="[authors_list id=<?php echo $al_id;?>]" disabled>
+							<input type="text" name="" value="[authors_list id=<?php echo esc_attr( $al_id );?>]" disabled>
 
 							<?php
 							if ( isset( $field['descr'] ) && $field['descr'] ) {
