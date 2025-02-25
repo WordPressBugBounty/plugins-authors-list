@@ -24,7 +24,7 @@ if ( ! class_exists( 'Authors_List_Backend' ) ) {
 		 *
 		 * @var string
 		 */
-		public $version = '2.0.5';
+		public $version = '2.0.6.1';
 
 		/**
 		 * Suffix for assets.

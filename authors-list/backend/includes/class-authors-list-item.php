@@ -812,8 +812,8 @@ if ( ! class_exists( 'Authors_List_Item' ) ) {
 			}
 		
 			// Search parameters
-			$search_param = isset( $_POST['searchParam'] ) ? sanitize_text_field( wp_unslash( $_POST['searchParam'] ) ) : '';
-			$search_column = isset( $_POST['searchColumn'] ) ? sanitize_text_field( wp_unslash( $_POST['searchColumn'] ) ) : '';
+			$search_param = isset($_POST['searchParam']) ? preg_replace('/[^a-zA-Z0-9\s,_-]/', '', sanitize_text_field( wp_unslash($_POST['searchParam'] ) ) ) : '';
+			$search_column = isset($_POST['searchColumn']) ? preg_replace('/[^a-zA-Z0-9\s,_-]/', '', sanitize_text_field( wp_unslash($_POST['searchColumn'] ) ) ) : '';
 		
 			// Add filters
 			add_filter( 'authors_list_shortcode_atts', array( $this, 'shortcode_atts_ajax' ) );
@@ -849,9 +849,12 @@ if ( ! class_exists( 'Authors_List_Item' ) ) {
 			}
 		
 			// Generate shortcode
+			$allowed_atts = [ 'id', 'ajax_request', 'search', 'search_columns', 'filters' ];
 			$shortcode_str = '[authors_list';
 			foreach ( $shortcode_atts as $key => $value ) {
-				$shortcode_str .= ' ' . esc_attr( $key ) . '="' . esc_attr( $value ) . '"';
+				if ( in_array( $key, $allowed_atts ) ) {
+					$shortcode_str .= ' ' . esc_attr( $key ) . '="' . esc_attr( $value ) . '"';
+				}
 			}
 			$shortcode_str .= ']';
 		

@@ -4,7 +4,7 @@ Tags:              author, list, grid, authors list, authors grid
 Requires at least: 4.7.0
 Tested up to:      6.7
 Requires PHP:      5.4
-Stable tag:        2.0.4
+Stable tag:        2.0.6.1
 License: GPLv2 or later
 
 Use a shortcode to display a list or grid of post authors (or any other user role) and links to their post archives page.
@@ -112,6 +112,8 @@ If you like this plugin, then please consider leaving us a rating / review. This
 - **Manual FTP Upload**: Upload the plugin folder to `/wp-content/plugins/`. Navigate to *Plugins* in the WordPress admin and activate.
 
 == Changelog ==
+= 2.0.6.1 (February 25th, 2025) =
+* Security fixes
 
 = 2.0.5 (December 10th, 2024) =
 * Security fixes
