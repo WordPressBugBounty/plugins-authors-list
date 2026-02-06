@@ -872,6 +872,21 @@ class Authors_List_Shortcode {
 			return;
 		}
 
+		// blocked keys for security reasons
+		$blocked_keys = array(
+			'ID',
+			'user_login',
+			'user_pass',
+			'user_email',
+			'user_registered',
+			'user_activation_key',
+			'user_status',
+		);
+
+		if ( in_array( $name, $blocked_keys, true ) ) {
+			return '';
+		}
+
 		// Get the user meta.
 		$value = get_user_meta( $user_id, $name, true );
 
